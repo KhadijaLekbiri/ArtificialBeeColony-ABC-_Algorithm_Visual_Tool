@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="abc.ui.Controller"
+            prefWidth="1000" prefHeight="650">
+
+    <!-- Zone centrale : Canvas -->
+    <Canvas fx:id="canvas"
+            layoutX="20"
+            layoutY="80"
+            width="960"
+            height="520" />
+
+    <!-- Barre de contrôles -->
+    <HBox spacing="15"
+          layoutX="20"
+          layoutY="20">
+
+        <Button fx:id="startBtn" text="Start" onAction="#onStart"/>
+        <Button fx:id="pauseBtn" text="Pause" onAction="#onPause"/>
+        <Button fx:id="nextBtn" text="Next Iteration" onAction="#onNext"/>
+        <Button fx:id="resetBtn" text="Reset" onAction="#onReset"/>
+
+        <!-- Nombre de food sources -->
+        <VBox spacing="5">
+            <Label text="Food sources:"/>
+            <Slider fx:id="foodSlider"
+                    min="5" max="50" value="20"
+                    prefWidth="150"
+                    onMouseReleased="#onFoodSliderChange"/>
+        </VBox>
+
+        <Label fx:id="foodCountLabel" text="20"/>
+
+    </HBox>
+
+    <!-- Label d’itération -->
+    <Label fx:id="iterationLabel"
+           text="Iteration: 0"
+           layoutX="20"
+           layoutY="610"
+           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+</AnchorPane>
