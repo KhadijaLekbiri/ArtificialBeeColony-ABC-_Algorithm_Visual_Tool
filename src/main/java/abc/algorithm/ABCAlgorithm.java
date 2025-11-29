@@ -1,135 +1,149 @@
+// src/main/java/abc/algorithm/ABCAlgorithm.java
 package abc.algorithm;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class ABCAlgorithm {
-    private final int dimension = 2; // for visualization: x and y
-    private final double[] lower = new double[] {-50, -50};
-    private final double[] upper = new double[] {50, 50};
+    private List<FoodSource> foodSources;
+    private final int maxIterations = 1000;
+    private final int limit;
+    private final double neighborhoodRadius;
+    private int currentIteration = 0;
+    private final Random rand = new Random();
+    private String currentPhase = "Initialization";
 
-    private int foodNumber = 20; // number of food sources (usually colony/2)
-    private int limit = 50; // abandonment limit
-    private List<FoodSource> foods;
-    private int iteration = 0;
-
-    // callbacks for UI to inspect state
-    public interface UpdateListener {
-        void onUpdate(List<FoodSource> foods, int iteration);
-    }
-    private UpdateListener listener;
-
-    public ABCAlgorithm() {
-        init();
-    }
-
-    public void setUpdateListener(UpdateListener l) {
-        this.listener = l;
-    }
-
-    public void init() {
-        foods = new ArrayList<>();
-        for (int i = 0; i < foodNumber; i++) {
-            foods.add(new FoodSource(dimension, lower, upper));
+    public ABCAlgorithm(int foodSourceCount, int limit, double neighborhoodRadius) {
+        this.limit = limit;
+        this.neighborhoodRadius = neighborhoodRadius;
+        this.foodSources = new ArrayList<>();
+        for (int i = 0; i < foodSourceCount; i++) {
+            double x = rand.nextDouble();
+            double y = rand.nextDouble();
+            double fitness = calculateFitness(x, y);
+            foodSources.add(new FoodSource(x, y, fitness, 0));
         }
-        iteration = 0;
-        notifyListener();
-    }
-
-    public void setFoodNumber(int n) {
-        this.foodNumber = Math.max(1, n);
-        init();
-    }
-
-    public int getIteration() {
-        return iteration;
-    }
-
-    public List<FoodSource> getFoods() {
-        return foods;
-    }
-
-    private void notifyListener() {
-        if (listener != null) {
-            listener.onUpdate(foods, iteration);
-        }
-    }
-
-    // Employed bee phase: each employed bee improves its source
-    public void employedSearch(int i) {
-        FoodSource current = foods.get(i);
-        FoodSource candidate = current.copy();
-        // generate neighbor
-        int dim = current.getDimension();
-        int k = i;
-        while (k == i) k = (int) (Math.random() * foods.size());
-        double[] xk = foods.get(k).getPosition();
-        double[] newPos = candidate.getPosition().clone();
-        int j = (int) (Math.random() * dim);
-        double phi = (Math.random() * 2 - 1); // [-1,1]
-        newPos[j] = newPos[j] + phi * (newPos[j] - xk[j]);
-        // clip
-        for (int d = 0; d < dim; d++) {
-            if (newPos[d] < lower[d]) newPos[d] = lower[d];
-            if (newPos[d] > upper[d]) newPos[d] = upper[d];
-        }
-        candidate.setPosition(newPos);
-        // greedy selection
-        if (candidate.getObjective() < current.getObjective()) {
-            foods.set(i, candidate);
-            candidate.resetTrial();
-        } else {
-            current.incrementTrial();
-        }
-    }
-
-    // Onlooker bee phase: probabilistic selection
-    public void onlookerSearch() {
-        double sumFit = 0;
-        for (FoodSource f : foods) sumFit += f.getFitness();
-        // roulette wheel
-        double r = Math.random() * sumFit;
-        double acc = 0;
-        int selected = 0;
-        for (int i = 0; i < foods.size(); i++) {
-            acc += foods.get(i).getFitness();
-            if (acc >= r) {
-                selected = i;
-                break;
-            }
-        }
-        // apply same neighborhood search to selected
-        employedSearch(selected);
-    }
-
-    // Scout phase: replace abandoned sources
-    public void scoutPhase() {
-        for (int i = 0; i < foods.size(); i++) {
-            if (foods.get(i).getTrial() >= limit) {
-                FoodSource f = new FoodSource(dimension, lower, upper);
-                foods.set(i, f);
-            }
-        }
+        this.currentPhase = "Initialization Complete";
     }
 
     public void runIteration() {
-        // employed bees
-        for (int i = 0; i < foods.size(); i++) {
-            employedSearch(i);
+        currentIteration++;
+
+        // --- EMPLOYED BEE PHASE ---
+        currentPhase = "Employed Bee Phase";
+        for (int i = 0; i < foodSources.size(); i++) {
+            FoodSource current = foodSources.get(i);
+            double newX = current.getX() + (rand.nextDouble() * 2 - 1) * neighborhoodRadius;
+            double newY = current.getY() + (rand.nextDouble() * 2 - 1) * neighborhoodRadius;
+            newX = Math.max(0, Math.min(1, newX));
+            newY = Math.max(0, Math.min(1, newY));
+            double newFitness = calculateFitness(newX, newY);
+
+            if (newFitness > current.getFitness()) {
+                foodSources.set(i, new FoodSource(newX, newY, newFitness, 0));
+            } else {
+                current.incrementTrialCount();
+            }
         }
-        // calculate probabilites implicitly by onlookerSearch sampling
-        int onlookers = foods.size(); // simple choice
+
+        // --- ONLOOKER BEE PHASE ---
+        currentPhase = "Onlooker Bee Phase";
+        double totalFitness = foodSources.stream().mapToDouble(FoodSource::getFitness).sum();
+        int onlookers = foodSources.size();
+
         for (int i = 0; i < onlookers; i++) {
-            onlookerSearch();
+            double pick = rand.nextDouble() * totalFitness;
+            double currentSum = 0;
+            int selectedIndex = -1;
+
+            for (int j = 0; j < foodSources.size(); j++) {
+                currentSum += foodSources.get(j).getFitness();
+                if (currentSum >= pick) {
+                    selectedIndex = j;
+                    break;
+                }
+            }
+
+            if (selectedIndex != -1) {
+                FoodSource selected = foodSources.get(selectedIndex);
+                double newX = selected.getX() + (rand.nextDouble() * 2 - 1) * neighborhoodRadius;
+                double newY = selected.getY() + (rand.nextDouble() * 2 - 1) * neighborhoodRadius;
+                newX = Math.max(0, Math.min(1, newX));
+                newY = Math.max(0, Math.min(1, newY));
+                double newFitness = calculateFitness(newX, newY);
+
+                if (newFitness > selected.getFitness()) {
+                    foodSources.set(selectedIndex, new FoodSource(newX, newY, newFitness, 0));
+                } else {
+                    selected.incrementTrialCount();
+                }
+            }
         }
-        // scout
-        scoutPhase();
-        iteration++;
-        notifyListener();
+
+        // --- SCOUT BEE PHASE ---
+        currentPhase = "Scout Bee Phase";
+        List<FoodSource> toRemove = new ArrayList<>();
+        List<FoodSource> toAdd = new ArrayList<>();
+
+        for (FoodSource fs : foodSources) {
+            if (fs.getTrialCount() > limit) {
+                toRemove.add(fs);
+                double x = rand.nextDouble();
+                double y = rand.nextDouble();
+                double fitness = calculateFitness(x, y);
+                toAdd.add(new FoodSource(x, y, fitness, 0));
+            }
+        }
+
+        foodSources.removeAll(toRemove);
+        foodSources.addAll(toAdd);
+
+        currentPhase = "Iteration " + currentIteration + " Complete";
     }
 
-    public FoodSource getBest() {
-        return foods.stream().min(Comparator.comparingDouble(FoodSource::getObjective)).orElse(null);
+    public double calculateFitness(double x, double y) {
+        double nx = x * 20 - 10;
+        double ny = y * 20 - 10;
+        double rastrigin = 20 +
+                (nx * nx - 10 * Math.cos(2 * Math.PI * nx)) +
+                (ny * ny - 10 * Math.cos(2 * Math.PI * ny));
+        return Math.max(0, 100 - Math.min(100, rastrigin));
     }
+
+    public boolean isConverged() {
+        if (foodSources.size() < 2) return true;
+        FoodSource best = Collections.max(foodSources, (a, b) -> Double.compare(a.getFitness(), b.getFitness()));
+        double maxDist = 0;
+        for (FoodSource fs : foodSources) {
+            double dx = fs.getX() - best.getX();
+            double dy = fs.getY() - best.getY();
+            double dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > maxDist) maxDist = dist;
+        }
+        return maxDist < 0.05;
+    }
+
+    // Analytics
+    public double getBestFitness() {
+        return foodSources.stream().mapToDouble(FoodSource::getFitness).max().orElse(0);
+    }
+
+    public double getAverageFitness() {
+        return foodSources.stream().mapToDouble(FoodSource::getFitness).average().orElse(0);
+    }
+
+    public int getAbandonedCount() {
+        return (int) foodSources.stream().filter(fs -> fs.getTrialCount() > limit * 0.9).count();
+    }
+
+    public int getScoutCount() {
+        return (int) foodSources.stream().filter(fs -> fs.getTrialCount() > limit).count();
+    }
+
+    // Getters
+    public List<FoodSource> getFoodSources() { return foodSources; }
+    public int getCurrentIteration() { return currentIteration; }
+    public int getMaxIterations() { return maxIterations; }
+    public int getLimit() { return limit; }
+    public double getNeighborhoodRadius() { return neighborhoodRadius; }
+    public String getCurrentPhase() { return currentPhase; }
 }

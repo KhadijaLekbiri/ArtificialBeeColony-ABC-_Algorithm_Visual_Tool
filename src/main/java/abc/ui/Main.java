@@ -1,3 +1,4 @@
+// src/main/java/abc/ui/Main.java
 package abc.ui;
 
 import javafx.application.Application;
@@ -8,12 +9,15 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void start(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/main.fxml"));
         Parent root = loader.load();
-        primaryStage.setTitle("Artificial Bee Colony Visual Tool");
-        primaryStage.setScene(new Scene(root, 900, 700));
-        primaryStage.show();
+        Scene scene = new Scene(root);
+        stage.setTitle("Artificial Bee Colony (ABC) Algorithm Visualizer");
+        stage.setScene(scene);
+        stage.setResizable(false);
+        stage.show();
+        // ✅ Do NOT call controller methods here — handled in initialize()
     }
 
     public static void main(String[] args) {
