@@ -3,15 +3,25 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.canvas.*?>
 <?import javafx.scene.control.*?>
-
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.example.abc_algorithm.HelloController"
-            prefWidth="800" prefHeight="600">
+            prefWidth="1000" prefHeight="600">
 
     <Button fx:id="startBtn" text="Start ABC Visualization"
             layoutX="20" layoutY="20"
             onAction="#startVisualization"/>
 
-    <Canvas fx:id="canvas" width="760" height="520"
+    <Canvas fx:id="canvas" width="700" height="500"
             layoutX="20" layoutY="60"/>
+
+    <TableView fx:id="foodTable" layoutX="740" layoutY="60"
+               prefWidth="240" prefHeight="500">
+        <columns>
+            <TableColumn fx:id="colId" text="ID" prefWidth="40"/>
+            <TableColumn fx:id="colX" text="X" prefWidth="60"/>
+            <TableColumn fx:id="colY" text="Y" prefWidth="60"/>
+            <TableColumn fx:id="colFitness" text="Fitness" prefWidth="70"/>
+        </columns>
+    </TableView>
+
 </AnchorPane>

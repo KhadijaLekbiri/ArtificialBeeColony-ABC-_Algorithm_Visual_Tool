@@ -17,9 +17,18 @@ public class Utils {
 
     // example fitness function (you will replace this)
     public static double fitness(double[] x) {
+        double fx = f(x);
+
+        if (fx >= 0)
+            return 1.0 / (1 + fx);
+        else
+            return 1 + Math.abs(fx);
+    }
+
+    public static double f(double[] x) {
         // Sphere function
         double sum = 0;
         for (double xi : x) sum += xi * xi;
-        return -sum; // maximize => return negative
+        return sum;
     }
 }

@@ -1,10 +1,12 @@
 package com.example.abc_algorithm;
 
-import com.example.abc_algorithm.algo.ABCAlgorithm;
+import com.example.abc_algorithm.algo.*;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.paint.Color;
 
 import java.util.ArrayList;
@@ -13,63 +15,186 @@ import java.util.Random;
 
 public class HelloController {
 
-
     @FXML
     private Canvas canvas;
-    private ABCAlgorithm abc;
 
-    private final List<Bee> bees = new ArrayList<>();
-    private final List<FoodSource> foodSources = new ArrayList<>();
+    private ABCAlgorithm abc;
     private AnimationTimer timer;
-    private final Random random = new Random();
+
+    // visual bees (agents)
+    private List<Bee> bees = new ArrayList<>();
+    @FXML
+    private TableView<FoodSource> foodTable;
+
+    @FXML
+    private TableColumn<FoodSource, String> colId;
+    @FXML
+    private TableColumn<FoodSource, Double> colX;
+    @FXML
+    private TableColumn<FoodSource, Double> colY;
+    @FXML
+    private TableColumn<FoodSource, Double> colFitness;
 
     @FXML
     public void initialize() {
-        // Create food sources at random positions
-        for (int i = 0; i < 5; i++) {
-            foodSources.add(new FoodSource(random.nextDouble() * canvas.getWidth(),
-                    random.nextDouble() * canvas.getHeight()));
-        }
+        abc = new ABCAlgorithm(5, 2, -5, 5);
+        createVisualBees();
 
-        // Create bees with roles
-        for (int i = 0; i < 30; i++) {
-            Bee.Role role = (i < 10) ? Bee.Role.EMPLOYED : (i < 25) ? Bee.Role.ONLOOKER : Bee.Role.SCOUT;
-            bees.add(new Bee(random.nextDouble() * canvas.getWidth(),
-                    random.nextDouble() * canvas.getHeight(), role));
+        // Set up table columns
+        colId.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
+                String.valueOf(abc.getFoodSources().indexOf(cell.getValue()) + 1)
+        ));
+        colX.setCellValueFactory(cell -> new javafx.beans.property.SimpleDoubleProperty(cell.getValue().get(0)).asObject());
+        colY.setCellValueFactory(cell -> new javafx.beans.property.SimpleDoubleProperty(cell.getValue().get(1)).asObject());
+        colFitness.setCellValueFactory(cell -> new javafx.beans.property.SimpleDoubleProperty(cell.getValue().getFitness()).asObject());
 
-        }
-        abc = new ABCAlgorithm(5,                 // number of food sources
-                2,                 // dimension (x, y)
-                canvas.getWidth(), // maxBound for x
-                canvas.getHeight() // maxBound for y
-        );
+        foodTable.getItems().setAll(abc.getFoodSources());
     }
+
+//    @FXML
+//    public void startVisualization() {
+//        timer = new AnimationTimer() {
+//
+//            private long lastUpdate = 0;
+//            private final long delay = 200_000_000; // 200 ms = 0.2 sec → slow motion
+//
+//            @Override
+//            public void handle(long now) {
+//
+//                if (now - lastUpdate < delay) {
+//                    return; // skip this frame
+//                }
+//                lastUpdate = now;
+//
+//                // 1. Run the ABC algorithm
+//                abc.runOneCycle();
+//
+//                // 2. Update visual bees
+//                updateBeeMovement();
+//
+//                // 3. Draw
+//                drawScene();
+//            }
+//        };
+//
+//        timer.start();
+//    }
 
     @FXML
     public void startVisualization() {
-        if (timer != null) return;
-
         timer = new AnimationTimer() {
+
+            private long lastUpdate = 0;
+            private final long delay = 200_000_000; // 200 ms = 0.2 sec → slow motion
+
             @Override
             public void handle(long now) {
-                updateBees();
-                drawScene();
+
+                if (now - lastUpdate < delay) {
+                    return; // skip this frame
+                }
+                lastUpdate = now;
+
+                updateAlgorithmPhase();
+
             }
         };
+
         timer.start();
     }
+    private int phaseCounter = 0;
 
-    private void updateBees() {
-        for (Bee b : bees) {
-            b.x += random.nextDouble() * 4 - 2;
-            b.y += random.nextDouble() * 4 - 2;
-
-            // Keep inside canvas
-            if (b.x < 0) b.x = 0;
-            if (b.y < 0) b.y = 0;
-            if (b.x > canvas.getWidth()) b.x = canvas.getWidth();
-            if (b.y > canvas.getHeight()) b.y = canvas.getHeight();
+    private void updateAlgorithmPhase() {
+        switch (phaseCounter) {
+            case 0 -> abc.employedBeePhase();
+            case 1 -> abc.onlookerBeePhase();
+            case 2 -> abc.scoutBeePhase();
         }
+
+        // move bees, draw scene
+        updateBeeMovement();
+        drawScene();
+        foodTable.refresh();
+        FoodSource best = abc.getBestFoodSource();
+        if (best != null) foodTable.scrollTo(best);
+
+        phaseCounter = (phaseCounter + 1) % 3; // loop through phases
+    }
+
+
+    private void createVisualBees() {
+        bees.clear();
+        Random r = new Random();
+
+        // EMPLOYED BEES — random start, each linked to a food source
+        for (FoodSource fs : abc.getFoodSources()) {
+
+            double startX = r.nextDouble() * canvas.getWidth();
+            double startY = r.nextDouble() * canvas.getHeight();
+
+            bees.add(new Bee(
+                    fs,                 // food source they represent
+                    new double[]{startX, startY},
+                    Bee.Role.EMPLOYED
+            ));
+        }
+
+        // ONLOOKER BEES — random position, random food by probability
+        for (int i = 0; i < 10; i++) {
+            FoodSource fs = abc.getRandomFoodSource();
+
+            double startX = r.nextDouble() * canvas.getWidth();
+            double startY = r.nextDouble() * canvas.getHeight();
+
+            bees.add(new Bee(
+                    fs,
+                    new double[]{startX, startY},
+                    Bee.Role.ONLOOKER
+            ));
+        }
+
+        // SCOUT — random wandering bee
+        bees.add(new Bee(
+                null,
+                new double[]{
+                        r.nextDouble() * canvas.getWidth(),
+                        r.nextDouble() * canvas.getHeight()
+                },
+                Bee.Role.SCOUT
+        ));
+    }
+
+
+    private void updateBeeMovement() {
+        for (Bee b : bees) {
+
+            if (b.getRole() == Bee.Role.SCOUT) {
+                // random
+                continue;
+            }
+
+            FoodSource fs = b.getCurrentFood();
+            if (fs == null) continue;
+
+            double targetX = mapToCanvas(fs.get(0));
+            double targetY = mapToCanvas(fs.get(1));
+
+            double[] pos = b.getPosition();
+
+            double newX = pos[0] + (targetX - pos[0]) * 0.2;
+            double newY = pos[1] + (targetY - pos[1]) * 0.2;
+
+            b.setPosition(new double[]{newX, newY});
+        }
+    }
+
+    private double mapToCanvas(double value) {
+        double min = abc.getMinBound();
+        double max = abc.getMaxBound();
+
+        double canvasWidth = canvas.getWidth();
+        // normalize
+        return (value - min) / (max - min) * canvasWidth;
     }
 
     private void drawScene() {
@@ -81,18 +206,23 @@ public class HelloController {
 
         // Draw food sources
         gc.setFill(Color.ORANGE);
-        for (FoodSource fs : foodSources) {
-            gc.fillOval(fs.x - 7.5, fs.y - 7.5, 15, 15);
+        for (FoodSource fs : abc.getFoodSources()) {
+            double px = mapToCanvas(fs.get(0));
+            double py = mapToCanvas(fs.get(1));
+            gc.fillOval(px - 7.5, py - 7.5, 15, 15);
         }
 
         // Draw bees with color based on role
         for (Bee b : bees) {
-            switch (b.role) {
+            switch (b.getRole()) {
                 case EMPLOYED -> gc.setFill(Color.BLUE);
                 case ONLOOKER -> gc.setFill(Color.GREEN);
                 case SCOUT -> gc.setFill(Color.RED);
             }
-            gc.fillOval(b.x - 5, b.y - 5, 10, 10);
+            double x = b.getPosition()[0];
+            double y = b.getPosition()[1];
+
+            gc.fillOval(x - 5, y - 5, 10, 10);
         }
 
         // Draw legend/key
@@ -121,16 +251,32 @@ public class HelloController {
         gc.setFill(Color.BLACK);
         gc.fillText("Flower (Food)", keyX + 20, keyY + 98);
     }
+//
+//    private void updateBeeMovement() {
+//        for (Bee b : bees) {
+//
+//            if (b.getRole() == Bee.Role.SCOUT) {
+//                // random movement
+//                b.setPosition(new double[]{
+//                        Math.random() * canvas.getWidth(),
+//                        Math.random() * canvas.getHeight()
+//                });
+//                continue;
+//            }
+//
+//            FoodSource fs = b.getCurrentFood();
+//            if (fs == null) continue;
+//
+//            // Smooth movement toward the food source
+//            double px = b.getCoordinate(0);
+//            double py = b.getCoordinate(1);
+//
+//            b.setPosition(new double[]{
+//                    px + (fs.x - px) * 0.2,
+//                    py + (fs.y - py) * 0.2
+//            });
+//        }
+//    }
 
-    public static class Bee {
-        double x, y;
-        Role role;
-        public Bee(double x, double y, Role role) { this.x = x; this.y = y; this.role = role; }
-        public enum Role { EMPLOYED, ONLOOKER, SCOUT }
-    }
 
-    public static class FoodSource {
-        double x, y;
-        public FoodSource(double x, double y) { this.x = x; this.y = y; }
-    }
 }

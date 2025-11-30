@@ -17,6 +17,9 @@ public class FoodSource {
         return position;
     }
 
+    public double get(int i){
+        return position[i];
+    }
     public double getFitness() {
         return fitness;
     }
