@@ -129,4 +129,5 @@ Higher fitness values indicate better solutions.
 
 - Hiba Ouhmad
 - Khadija Lekbiri
+  
 From the College of Computing – UM6P
