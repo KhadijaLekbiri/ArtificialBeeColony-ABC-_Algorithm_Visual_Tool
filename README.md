@@ -117,7 +117,7 @@ Higher fitness values indicate better solutions.
 
 5. Click Start ABC Visualization to begin the simulation
 
-🔧 Adjustable Parameters
+# 🔧 Adjustable Parameters
 | Parameter           | Description                                |
 | ------------------- | ------------------------------------------ |
 | Food Source Count   | Number of candidate solutions              |
