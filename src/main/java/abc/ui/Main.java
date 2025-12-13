@@ -17,7 +17,7 @@ public class Main extends Application {
         stage.setScene(scene);
         stage.setResizable(false);
         stage.show();
-        // ✅ Do NOT call controller methods here — handled in initialize()
+        // Do NOT call controller methods here — handled in initialize()
     }
 
     public static void main(String[] args) {

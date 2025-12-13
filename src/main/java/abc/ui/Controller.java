@@ -51,11 +51,11 @@ public class Controller {
     private void setupTooltips() {
         Tooltip canvasTooltip = new Tooltip(
                 "VISUALIZATION GUIDE:\n\n" +
-                        "🎯 Green Circles = High nectar (good solutions)\n" +
-                        "🎯 Red Circles = Low nectar (poor solutions)\n" +
-                        "🔴 Red Numbers = Trial count (near abandonment)\n" +
-                        "🔵 Blue Circles = Search neighborhood\n" +
-                        "⭐ Size = Fitness level (bigger = better)\n\n" +
+                        " Green Circles = High nectar (good solutions)\n" +
+                        " Red Circles = Low nectar (poor solutions)\n" +
+                        " Red Numbers = Trial count (near abandonment)\n" +
+                        " Blue Circles = Search neighborhood\n" +
+                        " Size = Fitness level (bigger = better)\n\n" +
                         "ALGORITHM PHASES:\n" +
                         "1. Employed Bees: Local search around known food sources\n" +
                         "2. Onlooker Bees: Fitness-proportional selection & search\n" +
@@ -237,7 +237,7 @@ public class Controller {
         gc.setFont(Font.font(12));
 
         // Legend
-        gc.fillText("LEGEND: 🟢 High Fitness → 🔴 Low Fitness | 🔴 Numbers = Trial Count", 10, 25);
+        gc.fillText("LEGEND:  High Fitness →  Low Fitness |  Numbers = Trial Count", 10, 25);
 
         // Best solution indicator
         if (!abc.getFoodSources().isEmpty()) {
@@ -252,7 +252,7 @@ public class Controller {
             gc.setStroke(Color.GOLD);
             gc.setLineWidth(2);
             gc.strokeOval(sx - 12, sy - 12, 24, 24);
-            gc.fillText("⭐ Best Solution", sx + 15, sy - 15);
+            gc.fillText(" Best Solution", sx + 15, sy - 15);
         }
     }
 
